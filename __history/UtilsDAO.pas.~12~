@@ -1,0 +1,80 @@
+unit UtilsDAO;
+
+interface
+
+uses System.SysUtils, System.Classes, Data.DBXJSON, DBXJSONReflect,
+  idHTTP, IdSSLOpenSSL, System.JSon;
+
+type
+  TUtilsDAO = Class
+    private
+    { Private declarations }
+    public
+    { Public declarations }
+      Constructor Create;
+      Destructor Destroy;
+      class function returnSoNumeros(Value: String): String;
+      class function getCEP(CEP: String): TJsonObject;
+  End;
+
+implementation
+
+{ TUtilsDAO }
+
+constructor TUtilsDAO.Create;
+begin
+  inherited Create;
+end;
+
+destructor TUtilsDAO.Destroy;
+begin
+  inherited;
+end;
+
+class function TUtilsDAO.getCEP(CEP: String): TJsonObject;
+var
+  loHTTP: TIdHTTP;
+  loIDSSLHandler: TIdSSLIOHandlerSocketOpenSSL;
+  lsResponse: TStringStream;
+begin
+  try
+    loHTTP := TIdHTTP.Create;
+    loIDSSLHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
+    loHTTP.IOHandler := IdSSLOpenSSL.TIdSSLIOHandlerSocketOpenSSL.Create;
+    lsResponse := TStringStream.Create(EmptyStr);
+
+    loHTTP.Get('https://viacep.com.br/ws/' + CEP + '/json', lsResponse);
+    if (loHTTP.ResponseCode = 200) and not (UTF8ToString(lsResponse.DataString) = '{'#$A'  "erro": true'#$A'}') then
+      Result := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(UTF8ToString(lsResponse.DataString)), 0) as TJSONObject
+    else
+      raise Exception.Create('CEP inexistente!');
+
+  finally
+    FreeAndNil(loHTTP);
+    FreeAndNil(loIDSSLHandler);
+    lsResponse.Destroy;
+  end;
+end;
+
+class function TUtilsDAO.returnSoNumeros(Value: String): String;
+var
+  lnIndex: Integer;
+  lsResult: String;
+  lcNumeros: TSysCharSet;
+begin
+  lcNumeros := ['0'..'9'];
+  lsResult := EmptyStr;
+
+  if Value.Trim <> EmptyStr then
+  begin
+    for lnIndex := 0 to Length(Value) do
+    begin
+      if CharInSet(Value[lnIndex], lcNumeros) then
+        lsResult := lsResult + Value[lnIndex];
+    end;
+  end;
+
+  Result := lsResult;
+end;
+
+end.

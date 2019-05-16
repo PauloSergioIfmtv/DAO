@@ -1,0 +1,114 @@
+unit UtilsDAO;
+
+interface
+
+uses System.SysUtils, System.Classes, Data.DBXJSON, DBXJSONReflect,
+  idHTTP, IdSSLOpenSSL, System.JSon;
+
+type
+  TUtilsDAO = Class
+    private
+    { Private declarations }
+    public
+    { Public declarations }
+      Constructor Create;
+      Destructor Destroy;
+      class function returnSoNumeros(Value: String): String;
+      class function getCEP(CEP: String): TJsonObject;
+      class function seachSiglaEstadoUF(Value: String): String;
+  End;
+
+implementation
+
+{ TUtilsDAO }
+
+constructor TUtilsDAO.Create;
+begin
+  inherited Create;
+end;
+
+destructor TUtilsDAO.Destroy;
+begin
+  inherited;
+end;
+
+class function TUtilsDAO.getCEP(CEP: String): TJsonObject;
+var
+  loHTTP: TIdHTTP;
+  lsResponse: TStringStream;
+begin
+  try
+    loHTTP := TIdHTTP.Create;
+    loHTTP.IOHandler := IdSSLOpenSSL.TIdSSLIOHandlerSocketOpenSSL.Create;
+    lsResponse := TStringStream.Create(EmptyStr);
+
+    loHTTP.Get('https://viacep.com.br/ws/' + CEP + '/json', lsResponse);
+    if (loHTTP.ResponseCode = 200) and not (UTF8ToString(lsResponse.DataString) = '{'#$A'  "erro": true'#$A'}') then
+      Result := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(UTF8ToString(lsResponse.DataString)), 0) as TJSONObject
+    else
+      raise Exception.Create('CEP inexistente!');
+
+  finally
+    FreeAndNil(loHTTP);
+    lsResponse.Destroy;
+  end;
+end;
+
+class function TUtilsDAO.returnSoNumeros(Value: String): String;
+var
+  lnIndex: Integer;
+  lsResult: String;
+  lcNumeros: TSysCharSet;
+begin
+  lcNumeros := ['0'..'9'];
+  lsResult := EmptyStr;
+
+  if Value.Trim <> EmptyStr then
+  begin
+    for lnIndex := 0 to Length(Value) do
+    begin
+      if CharInSet(Value[lnIndex], lcNumeros) then
+        lsResult := lsResult + Value[lnIndex];
+    end;
+  end;
+
+  Result := lsResult;
+end;
+
+class function TUtilsDAO.seachSiglaEstadoUF(Value: String): String;
+var
+  lsResult: String;
+begin
+  lsResult := EmptyStr;
+  case AnsiIndexStr(UpperCase(Value), ['AC', 'AL','AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RR', 'RO', 'SC', 'SE', 'SP', 'TO'])  of
+    1'AC': lsResult := 'Acre';
+    2'AL': lsResult := 'Alagoas';
+    3'AM': lsResult := 'Amazonas';
+    4'AP': lsResult := 'Amapá';
+    5'BA': lsResult := 'Bahia';
+    6'CE': lsResult := 'Ceará';
+    7'DF': lsResult := 'Distrito Federal';
+    8'ES': lsResult := 'Espiríto Santo';
+    9'GO': lsResult := 'Goiás';
+    10'MA': lsResult := 'Maranhão';
+    11'MG': lsResult := 'Minas Gerais';
+    12'MS': lsResult := 'Mato Grosso do Sul';
+    13'MT': lsResult := 'Mato Grosso';
+    14'PA': lsResult := 'Pará';
+    15'PB': lsResult := 'Paraíba';
+    16'PR': lsResult := 'Paraná';
+    17'PE': lsResult := 'Pernambuco';
+    18'PI': lsResult := 'Piauí';
+    19'RJ': lsResult := 'Rio de Janeiro';
+    20'RN': lsResult := 'Rio Grande do Norte';
+    21'RS': lsResult := 'Rio Grande do Sul';
+    22'RR': lsResult := 'Rondônia';
+    23'RO': lsResult := 'Roraima';
+    24'SC': lsResult := 'Santa Catarina';
+    25'SE': lsResult := 'Sergipe';
+    26'SP': lsResult := 'São Paulo';
+    27'TO': lsResult := 'Tocantins';
+  end;
+end;
+
+end.
